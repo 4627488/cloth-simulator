@@ -26,6 +26,30 @@ const float REST_DISTANCE = 20.0f;
 #define KEY_LBRACKET 47
 #define KEY_RBRACKET 48
 
+void reset_cloth(std::vector<Particle>& particles, std::vector<Constraint>& constraints)
+{
+    particles.clear();
+    constraints.clear();
+    for (int row = 0; row < ROW; row++) {
+        for (int col = 0; col < COL; col++) {
+            float x = col * REST_DISTANCE + WIDTH / 6;
+            float y = row * REST_DISTANCE + HEIGHT / 6;
+            bool pinned = (row == 0);
+            particles.emplace_back(x, y, pinned);
+        }
+    }
+    for (int row = 0; row < ROW; row++) {
+        for (int col = 0; col < COL; col++) {
+            if (col < COL - 1) {
+                constraints.emplace_back(&particles[row * COL + col], &particles[row * COL + col + 1]);
+            }
+            if (row < ROW - 1) {
+                constraints.emplace_back(&particles[row * COL + col], &particles[(row + 1) * COL + col]);
+            }
+        }
+    }
+}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode({ WIDTH, HEIGHT }), "Cloth Simulation");
@@ -43,28 +67,7 @@ int main()
 
     float gravity = GRAVITY;
 
-    for (int row = 0; row < ROW; row++) {
-        for (int col = 0; col < COL; col++) {
-            float x = col * REST_DISTANCE + WIDTH / 6;
-            float y = row * REST_DISTANCE + HEIGHT / 6;
-            bool pinned = (row == 0);
-            particles.emplace_back(x, y, pinned);
-        }
-    }
-
-    // Initialize constraints
-    for (int row = 0; row < ROW; row++) {
-        for (int col = 0; col < COL; col++) {
-            if (col < COL - 1) {
-                // Horizontal constraint
-                constraints.emplace_back(&particles[row * COL + col], &particles[row * COL + col + 1]);
-            }
-            if (row < ROW - 1) {
-                // Vertical constraint
-                constraints.emplace_back(&particles[row * COL + col], &particles[(row + 1) * COL + col]);
-            }
-        }
-    }
+    reset_cloth(particles, constraints);
 
     while (window.isOpen()) {
         while (auto event = window.pollEvent()) {
@@ -128,26 +131,7 @@ int main()
                     }
                     // R键重置布料
                     if ((int)key->code == KEY_R) {
-                        particles.clear();
-                        constraints.clear();
-                        for (int row = 0; row < ROW; row++) {
-                            for (int col = 0; col < COL; col++) {
-                                float x = col * REST_DISTANCE + WIDTH / 6;
-                                float y = row * REST_DISTANCE + HEIGHT / 6;
-                                bool pinned = (row == 0);
-                                particles.emplace_back(x, y, pinned);
-                            }
-                        }
-                        for (int row = 0; row < ROW; row++) {
-                            for (int col = 0; col < COL; col++) {
-                                if (col < COL - 1) {
-                                    constraints.emplace_back(&particles[row * COL + col], &particles[row * COL + col + 1]);
-                                }
-                                if (row < ROW - 1) {
-                                    constraints.emplace_back(&particles[row * COL + col], &particles[(row + 1) * COL + col]);
-                                }
-                            }
-                        }
+                        reset_cloth(particles, constraints);
                     }
                     // +/-键调整重力
                     if ((int)key->code == KEY_EQUAL) {
