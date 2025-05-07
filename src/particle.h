@@ -1,24 +1,24 @@
 #ifndef PARTICLE_H
 #define PARTICLE_H
 
-#include <SFML/Graphics.hpp>
+#include "vector3f.h"
 
 class Particle {
 public:
-    sf::Vector2f position;
-    sf::Vector2f previous_position;
-    sf::Vector2f acceleration;
+    Vector3f position;
+    Vector3f previous_position;
+    Vector3f acceleration;
     bool is_pinned;
 
-    Particle(float x, float y, bool pinned = false)
-        : position(x, y)
-        , previous_position(x, y)
-        , acceleration(0, 0)
+    Particle(float x, float y, float z = 0, bool pinned = false)
+        : position(x, y, z)
+        , previous_position(x, y, z)
+        , acceleration(0, 0, 0)
         , is_pinned(pinned)
     {
     }
 
-    void apply_force(const sf::Vector2f& force)
+    void apply_force(const Vector3f& force)
     {
         if (!is_pinned) {
             acceleration += force;
@@ -27,16 +27,16 @@ public:
 
     void update(float time_step)
     {
-        // verlet intergration
+        // verlet integration
         if (!is_pinned) {
-            sf::Vector2f velocity = position - previous_position;
+            Vector3f velocity = position - previous_position;
             previous_position = position;
-            position += velocity + acceleration * time_step * time_step;
-            acceleration = sf::Vector2f(0, 0); // reset after update
+            position += velocity + acceleration * (time_step * time_step);
+            acceleration = Vector3f(0, 0, 0); // reset after update
         }
     }
 
-    void constrain_to_bounds(float width, float height)
+    void constrain_to_bounds(float width, float height, float depth = 1000.0f)
     {
         if (position.x < 0)
             position.x = 0;
@@ -46,6 +46,10 @@ public:
             position.y = 0;
         if (position.y > height)
             position.y = height;
+        if (position.z < 0)
+            position.z = 0;
+        if (position.z > depth)
+            position.z = depth;
     }
 };
 

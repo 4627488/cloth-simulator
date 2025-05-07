@@ -3,6 +3,7 @@
 
 #include "constraint.h"
 #include "particle.h"
+#include "vector3f.h"
 #include <SFML/Graphics.hpp>
 #include <vector>
 
@@ -18,64 +19,45 @@ public:
             if (mouse && mouse->button == sf::Mouse::Button::Left) {
                 float mouse_x = static_cast<float>(mouse->position.x);
                 float mouse_y = static_cast<float>(mouse->position.y);
-                tear_cloth(mouse_x, mouse_y, particles, constraints);
+                // 假设投影到z=0平面
+                tear_cloth(Vector3f(mouse_x, mouse_y, 0), particles, constraints);
             }
         }
     }
 
 private:
-    static float point_to_segment_distance(float px, float py, float x1, float y1, float x2, float y2)
+    static float point_to_segment_distance(const Vector3f& p, const Vector3f& a, const Vector3f& b)
     {
-        float ABx = x2 - x1;
-        float ABy = y2 - y1;
-
-        float APx = px - x1;
-        float APy = py - y1;
-
-        float BPx = px - x2;
-        float BPy = py - y2;
-
-        float AB_AP = ABx * APx + ABy * APy;
-        float AB_AB = ABx * ABx + ABy * ABy;
-        float t = AB_AP / AB_AB;
-
-        // Project point P ont the line segment AB
-        if (t < 0.0f) {
-            // P is closer to A
-            return std::sqrt(APx * APx + APy * APy);
-        } else if (t > 1.0f) {
-            // P is closer to B
-            return std::sqrt(BPx * BPx + BPy * BPy);
-        } else {
-            // projection point is on the segment
-            float proj_x = x1 + t * ABx;
-            float proj_y = y1 + t * ABy;
-            return std::sqrt((px - proj_x) * (px - proj_x) + (py - proj_y) * (py - proj_y));
-        }
+        Vector3f ab = b - a;
+        Vector3f ap = p - a;
+        float ab_len2 = ab.dot(ab);
+        float t = ab_len2 > 0 ? ap.dot(ab) / ab_len2 : 0;
+        t = std::max(0.0f, std::min(1.0f, t));
+        Vector3f proj = a + ab * t;
+        return (p - proj).length();
     }
 
-    static Constraint* find_nearest_constraint(float mouse_x, float mouse_y,
+    static Constraint* find_nearest_constraint(const Vector3f& mouse_pos,
         const std::vector<Constraint>& constraints)
     {
         Constraint* nearest_constraint = nullptr;
         float min_distance = CLICK_TOLERANCE;
 
         for (const auto& constraint : constraints) {
-            float distatnce = point_to_segment_distance(mouse_x, mouse_y,
-                constraint.p1->position.x, constraint.p1->position.y,
-                constraint.p2->position.x, constraint.p2->position.y);
-            if (distatnce < min_distance) {
-                min_distance = distatnce;
+            float distance = point_to_segment_distance(mouse_pos,
+                constraint.p1->position, constraint.p2->position);
+            if (distance < min_distance) {
+                min_distance = distance;
                 nearest_constraint = const_cast<Constraint*>(&constraint);
             }
         }
         return nearest_constraint;
     }
 
-    static void tear_cloth(float mouse_x, float mouse_y, const std::vector<Particle>& particles,
+    static void tear_cloth(const Vector3f& mouse_pos, const std::vector<Particle>& particles,
         std::vector<Constraint>& constraints)
     {
-        Constraint* nearest = find_nearest_constraint(mouse_x, mouse_y, constraints);
+        Constraint* nearest = find_nearest_constraint(mouse_pos, constraints);
         if (nearest) {
             nearest->deactivate();
         }
