@@ -99,6 +99,8 @@ int main()
 
     float gravity = GRAVITY;
 
+    bool tear_mode = false;
+
     reset_cloth(particles, constraints);
 
     sf::Clock fpsClock;
@@ -110,23 +112,48 @@ int main()
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
+            // X键按下/松开，切换撕裂模式
+            if (event->is<sf::Event::KeyPressed>()) {
+                auto key = event->getIf<sf::Event::KeyPressed>();
+                if (key && key->code == sf::Keyboard::Key::X) {
+                    tear_mode = true;
+                }
+            }
+            if (event->is<sf::Event::KeyReleased>()) {
+                auto key = event->getIf<sf::Event::KeyReleased>();
+                if (key && key->code == sf::Keyboard::Key::X) {
+                    tear_mode = false;
+                }
+            }
             // 鼠标按下，查找最近粒子
             if (event->is<sf::Event::MouseButtonPressed>()) {
                 auto mouse = event->getIf<sf::Event::MouseButtonPressed>();
                 if (mouse && mouse->button == sf::Mouse::Button::Left) {
-                    auto mousePos = sf::Mouse::getPosition(window);
-                    Vector3f mousePos3(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y), 0);
+                    sf::Vector2i mousePos(mouse->position.x, mouse->position.y);
+                    sf::Vector2f mapped = window.mapPixelToCoords(mousePos);
+                    Vector3f mousePos3(mapped.x, mapped.y, 0);
                     float minDist = 1e9f;
+                    Particle* nearest = nullptr;
                     for (auto& particle : particles) {
                         float dist = (project(particle.position) - sf::Vector2f(mousePos3.x, mousePos3.y)).x * (project(particle.position) - sf::Vector2f(mousePos3.x, mousePos3.y)).x + (project(particle.position) - sf::Vector2f(mousePos3.x, mousePos3.y)).y * (project(particle.position) - sf::Vector2f(mousePos3.x, mousePos3.y)).y;
                         dist = std::sqrt(dist);
                         if (dist < minDist && dist < 30.0f) {
                             minDist = dist;
-                            dragged_particle = &particle;
+                            nearest = &particle;
                         }
                     }
-                    if (dragged_particle && !dragged_particle->is_pinned)
-                        dragging = true;
+                    if (tear_mode && nearest) {
+                        // 删除与该粒子相关的所有约束
+                        constraints.erase(
+                            std::remove_if(constraints.begin(), constraints.end(),
+                                [nearest](const Constraint& c) {
+                                    return c.p1 == nearest || c.p2 == nearest;
+                                }),
+                            constraints.end());
+                    } else {
+                        if (nearest && !nearest->is_pinned)
+                            dragging = true, dragged_particle = nearest;
+                    }
                 }
             }
             // 鼠标释放，取消拖拽
@@ -141,8 +168,9 @@ int main()
             if (event->is<sf::Event::MouseButtonPressed>()) {
                 auto mouse = event->getIf<sf::Event::MouseButtonPressed>();
                 if (mouse && mouse->button == sf::Mouse::Button::Right) {
-                    auto mousePos = sf::Mouse::getPosition(window);
-                    Vector3f mousePos3(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y), 0);
+                    sf::Vector2i mousePos(mouse->position.x, mouse->position.y);
+                    sf::Vector2f mapped = window.mapPixelToCoords(mousePos);
+                    Vector3f mousePos3(mapped.x, mapped.y, 0);
                     float minDist = 1e9f;
                     Particle* nearest = nullptr;
                     for (auto& particle : particles) {
@@ -163,7 +191,7 @@ int main()
                 auto mouse = event->getIf<sf::Event::MouseButtonPressed>();
                 if (mouse && mouse->button == sf::Mouse::Button::Middle) {
                     panning = true;
-                    pan_start_mouse = sf::Mouse::getPosition(window);
+                    pan_start_mouse = sf::Vector2i(mouse->position.x, mouse->position.y);
                     pan_start_cam = cam_pos;
                 }
             }
@@ -233,9 +261,11 @@ int main()
 
         // 拖拽时让粒子跟随鼠标
         if (dragging && dragged_particle) {
-            auto mousePos = sf::Mouse::getPosition(window);
-            dragged_particle->position.x = static_cast<float>(mousePos.x);
-            dragged_particle->position.y = static_cast<float>(mousePos.y) + dragged_particle->position.z * 0.5f;
+            // 全屏下用 mapPixelToCoords 保证坐标正确
+            sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+            sf::Vector2f mapped = window.mapPixelToCoords(mousePos);
+            dragged_particle->position.x = mapped.x;
+            dragged_particle->position.y = mapped.y + dragged_particle->position.z * 0.5f;
         }
 
         // 鼠标中键拖动时，实时平移
@@ -318,7 +348,7 @@ int main()
             fps = alpha * (1.0f / deltaTime) + (1 - alpha) * fps;
         }
         if (font_loaded) {
-            std::string info_str = "Points: " + std::to_string(particles.size()) + "\nConstraints: " + std::to_string(constraints.size()) + "\nFPS: " + std::to_string(fps);
+            std::string info_str = "Points: " + std::to_string(particles.size()) + "\nConstraints: " + std::to_string(constraints.size()) + "\nFPS: " + std::to_string(fps) + "\nTear Mode: " + (tear_mode ? "ON" : "OFF") + "\nWind Mode: " + (wind_on ? "ON" : "OFF");
             sf::Text info(font, info_str);
             info.setFillColor(sf::Color::White);
             info.setPosition(sf::Vector2f(static_cast<float>(WIDTH - 350), 20.f)); // 右上角
