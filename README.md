@@ -4,6 +4,10 @@
 
 This project implements a 2D cloth physics simulation system based on C++ and SFML. Users can interact with the cloth using the mouse and keyboard, enabling features such as dragging, pinning, wind, gravity adjustment, cloth reset, and more. The project adopts an object-oriented design, with a clear structure and easy extensibility.
 
+## Screenshots
+
+![image](image.png)
+
 ## Main Features
 
 - **Cloth Physics Simulation**: Realistic elasticity and flexibility effects based on particles and constraints.
