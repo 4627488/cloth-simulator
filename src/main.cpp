@@ -18,15 +18,18 @@ const float TIME_STEP = 0.1f;
 
 const int ROW = 60;
 const int COL = 60;
-const float REST_DISTANCE = 10.0f;
-
-// 键值常量（如有需要可根据实际环境调整）
-// 使用SFML官方键值，无需自定义常量
+const float REST_DISTANCE = 13.0f;
 
 // 相机参数
 float cam_yaw = 0.0f; // 绕Y轴旋转（水平）
 float cam_pitch = 0.0f; // 绕X轴旋转（俯仰）
 Vector3f cam_pos(0, 0, 0); // 视点原点
+
+// 网格类型枚举
+enum class GridType { Square,
+    Triangle,
+    Hexagon };
+GridType grid_type = GridType::Square; // 默认正方形
 
 // 视图变换：世界坐标->相机坐标
 Vector3f world_to_camera(const Vector3f& p)
@@ -49,22 +52,78 @@ void reset_cloth(std::vector<Particle>& particles, std::vector<Constraint>& cons
 {
     particles.clear();
     constraints.clear();
-    for (int row = 0; row < ROW; row++) {
-        for (int col = 0; col < COL; col++) {
-            float x = col * REST_DISTANCE + WIDTH / 6;
-            float y = row * REST_DISTANCE + HEIGHT / 6;
-            float z = (float)(col + row) / (ROW + COL) * 200.0f + 100.0f; // 简单z扰动
-            bool pinned = (row == 0);
-            particles.emplace_back(x, y, z, pinned);
-        }
-    }
-    for (int row = 0; row < ROW; row++) {
-        for (int col = 0; col < COL; col++) {
-            if (col < COL - 1) {
-                constraints.emplace_back(&particles[row * COL + col], &particles[row * COL + col + 1]);
+    if (grid_type == GridType::Square) {
+        for (int row = 0; row < ROW; row++) {
+            for (int col = 0; col < COL; col++) {
+                float x = col * REST_DISTANCE + WIDTH / 6;
+                float y = row * REST_DISTANCE + HEIGHT / 6;
+                float z = (float)(col + row) / (ROW + COL) * 200.0f + 100.0f; // 简单z扰动
+                bool pinned = (row == 0);
+                particles.emplace_back(x, y, z, pinned);
             }
-            if (row < ROW - 1) {
-                constraints.emplace_back(&particles[row * COL + col], &particles[(row + 1) * COL + col]);
+        }
+        for (int row = 0; row < ROW; row++) {
+            for (int col = 0; col < COL; col++) {
+                if (col < COL - 1) {
+                    constraints.emplace_back(&particles[row * COL + col], &particles[row * COL + col + 1]);
+                }
+                if (row < ROW - 1) {
+                    constraints.emplace_back(&particles[row * COL + col], &particles[(row + 1) * COL + col]);
+                }
+            }
+        }
+    } else if (grid_type == GridType::Triangle) {
+        // 三角形网格：每个点与右、下、右下、左下相连
+        for (int row = 0; row < ROW; row++) {
+            for (int col = 0; col < COL; col++) {
+                float x = col * REST_DISTANCE + WIDTH / 6;
+                float y = row * REST_DISTANCE + HEIGHT / 6;
+                float z = (float)(col + row) / (ROW + COL) * 200.0f + 100.0f;
+                bool pinned = (row == 0);
+                particles.emplace_back(x, y, z, pinned);
+            }
+        }
+        for (int row = 0; row < ROW; row++) {
+            for (int col = 0; col < COL; col++) {
+                int idx = row * COL + col;
+                if (col < COL - 1) // 右
+                    constraints.emplace_back(&particles[idx], &particles[idx + 1]);
+                if (row < ROW - 1) // 下
+                    constraints.emplace_back(&particles[idx], &particles[idx + COL]);
+                if (col < COL - 1 && row < ROW - 1) // 右下
+                    constraints.emplace_back(&particles[idx], &particles[idx + COL + 1]);
+                if (col > 0 && row < ROW - 1) // 左下
+                    constraints.emplace_back(&particles[idx], &particles[idx + COL - 1]);
+            }
+        }
+    } else if (grid_type == GridType::Hexagon) {
+        // 六边形网格：蜂窝状排列
+        float hex_dx = REST_DISTANCE * 0.866f; // cos(30°)
+        float hex_dy = REST_DISTANCE * 0.75f; // 行间距
+        for (int row = 0; row < ROW; row++) {
+            for (int col = 0; col < COL; col++) {
+                float x = col * hex_dx + (row % 2) * (hex_dx / 2) + WIDTH / 6;
+                float y = row * hex_dy + HEIGHT / 6;
+                float z = (float)(col + row) / (ROW + COL) * 200.0f + 100.0f;
+                bool pinned = (row == 0);
+                particles.emplace_back(x, y, z, pinned);
+            }
+        }
+        for (int row = 0; row < ROW; row++) {
+            for (int col = 0; col < COL; col++) {
+                int idx = row * COL + col;
+                // 右
+                if (col < COL - 1)
+                    constraints.emplace_back(&particles[idx], &particles[idx + 1]);
+                // 下
+                if (row < ROW - 1)
+                    constraints.emplace_back(&particles[idx], &particles[idx + COL]);
+                // 右下
+                if (row < ROW - 1 && col < COL - 1 && (row % 2 == 0))
+                    constraints.emplace_back(&particles[idx], &particles[idx + COL + 1]);
+                // 左下
+                if (row < ROW - 1 && col > 0 && (row % 2 == 1))
+                    constraints.emplace_back(&particles[idx], &particles[idx + COL - 1]);
             }
         }
     }
@@ -238,6 +297,21 @@ int main()
                         cam_pitch -= 0.05f;
                     if (key->code == sf::Keyboard::Key::S)
                         cam_pitch += 0.05f;
+                    // T键切换三角形网格
+                    if (key->code == sf::Keyboard::Key::T) {
+                        grid_type = GridType::Triangle;
+                        reset_cloth(particles, constraints);
+                    }
+                    // H键切换六边形网格
+                    if (key->code == sf::Keyboard::Key::H) {
+                        grid_type = GridType::Hexagon;
+                        reset_cloth(particles, constraints);
+                    }
+                    // Q键切换正方形网格
+                    if (key->code == sf::Keyboard::Key::Q) {
+                        grid_type = GridType::Square;
+                        reset_cloth(particles, constraints);
+                    }
                 }
             }
             // 鼠标滚轮控制相机前后移动
@@ -349,6 +423,13 @@ int main()
         }
         if (font_loaded) {
             std::string info_str = "Points: " + std::to_string(particles.size()) + "\nConstraints: " + std::to_string(constraints.size()) + "\nFPS: " + std::to_string(fps) + "\nTear Mode: " + (tear_mode ? "ON" : "OFF") + "\nWind Mode: " + (wind_on ? "ON" : "OFF");
+            info_str += "\nGrid: ";
+            if (grid_type == GridType::Square)
+                info_str += "Square";
+            else if (grid_type == GridType::Triangle)
+                info_str += "Triangle";
+            else if (grid_type == GridType::Hexagon)
+                info_str += "Hexagon";
             sf::Text info(font, info_str);
             info.setFillColor(sf::Color::White);
             info.setPosition(sf::Vector2f(static_cast<float>(WIDTH - 350), 20.f)); // 右上角
@@ -362,7 +443,10 @@ int main()
                                    "+/-: Gravity\n"
                                    "[ ]: Wind\n"
                                    "WASD: Rotate view\n"
-                                   "Space: Toggle wind";
+                                   "Space: Toggle wind\n"
+                                   "T: Triangle grid\n"
+                                   "H: Hex grid\n"
+                                   "Q: Square grid";
             sf::Text help(font, help_str);
             help.setFillColor(sf::Color(200, 200, 200));
             help.setCharacterSize(22);
