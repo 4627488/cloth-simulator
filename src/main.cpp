@@ -410,14 +410,28 @@ int main()
         static sf::Font font;
         static bool font_loaded = false;
         if (!font_loaded) {
-            font_loaded = font.openFromFile("C:/Windows/Fonts/Arial.ttf"); // 路径可根据实际环境调整
+            font_loaded = font.openFromFile("Arial.ttf");
+            if (!font_loaded)
+                font_loaded = font.openFromFile("fonts/Arial.ttf");
+#if defined(_WIN32)
+            if (!font_loaded)
+                font_loaded = font.openFromFile("C:/Windows/Fonts/Arial.ttf");
+#elif defined(__APPLE__)
+            if (!font_loaded)
+                font_loaded = font.openFromFile("/System/Library/Fonts/Supplemental/Arial.ttf");
+#elif defined(__linux__)
+            if (!font_loaded)
+                font_loaded = font.openFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
+#endif
+            if (!font_loaded) {
+                std::cerr << "字体加载失败，请将 Arial.ttf 放到程序目录或 fonts 目录下！" << std::endl;
+            }
         }
         // 帧率统计（实时更新）
         float currentTime = fpsClock.getElapsedTime().asSeconds();
         float deltaTime = currentTime - lastFrameTime;
         lastFrameTime = currentTime;
         if (deltaTime > 0.0001f) {
-            // 可选：滑动平均让FPS更平滑
             const float alpha = 0.1f;
             fps = alpha * (1.0f / deltaTime) + (1 - alpha) * fps;
         }
