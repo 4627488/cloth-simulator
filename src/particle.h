@@ -38,18 +38,6 @@ public:
 
     void constrain_to_bounds(float width, float height, float depth = 1000.0f)
     {
-        if (position.x < 0)
-            position.x = 0;
-        if (position.x > width)
-            position.x = width;
-        if (position.y < 0)
-            position.y = 0;
-        if (position.y > height)
-            position.y = height;
-        if (position.z < 0)
-            position.z = 0;
-        if (position.z > depth)
-            position.z = depth;
     }
 };
 

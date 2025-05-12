@@ -8,37 +8,35 @@
 class Camera {
 public:
     Camera(const Vector3f& position = Vector3f(0, 0, 0), float yaw = 0.0f, float pitch = 0.0f);
-
-    // Transforms a world coordinate point to camera coordinate space
+    // 将世界坐标点转换为相机坐标空间
     Vector3f world_to_camera(const Vector3f& world_point) const;
 
-    // Projects a 3D camera coordinate point to a 2D screen point
-    // Note: This includes a simple perspective effect and offset
+    // 将3D相机坐标点转换为2D屏幕点
+    // 注意：这包括一个简单的透视效果和偏移
     sf::Vector2f project(const Vector3f& world_point) const;
 
-    // Rotates the camera
+    // 旋转相机
     void rotate(float delta_yaw, float delta_pitch);
 
-    // Moves the camera along its forward vector
+    // 沿其向前向量移动相机
     void zoom(float amount);
 
-    // Moves the camera parallel to the view plane (panning)
+    // 沿视平面移动相机（平移）
     void pan(float delta_x, float delta_y);
 
-    // Getters
+    // 获取器
     const Vector3f& get_position() const;
     float get_yaw() const;
     float get_pitch() const;
 
-    // Setters (optional, depending on design)
     void set_position(const Vector3f& position);
 
 private:
     Vector3f position_;
-    float yaw_; // Rotation around Y-axis
-    float pitch_; // Rotation around X-axis
+    float yaw_; // 绕Y轴旋转
+    float pitch_; // 绕X轴旋转
 
-    // Helper to get camera's forward, right, and up vectors might be useful
+    // 获取相机的前向、右向和上向量（可能很有用）
     Vector3f get_forward_vector() const;
     Vector3f get_right_vector() const;
     Vector3f get_up_vector() const;

@@ -9,6 +9,6 @@ const float TIME_STEP = 0.1f;
 
 const int DEFAULT_ROW = 60;
 const int DEFAULT_COL = 60;
-const float DEFAULT_REST_DISTANCE = 13.0f;
+const float DEFAULT_REST_DISTANCE = 8.0f;
 
 #endif // CONSTANTS_H
