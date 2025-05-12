@@ -16,6 +16,7 @@ add_executable(main
     src/main.cpp
     src/cloth.cpp
     src/cloth_state.cpp
+    src/camera.cpp
 )
 target_compile_features(main PRIVATE cxx_std_20)
 target_link_libraries(main PRIVATE SFML::Graphics)
