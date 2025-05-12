@@ -47,4 +47,4 @@ jobs:
         with:
           name: build-${{ matrix.platform.name }}-${{ matrix.config.name }}
           path: |
-            build/**
+            build/bin/

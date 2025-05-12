@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 
+#include "cloth_state.h"
 #include "constraint.h"
 #include "input_handler.h"
 #include "particle.h"
@@ -312,6 +313,20 @@ int main()
                         grid_type = GridType::Square;
                         reset_cloth(particles, constraints);
                     }
+                    // 保存/加载布料状态
+                    if (key->code == sf::Keyboard::Key::S && sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl)) {
+                        if (ClothState::save(particles, constraints, "cloth_save.txt"))
+                            std::cout << "布料已保存到 cloth_save.txt" << std::endl;
+                        else
+                            std::cout << "保存失败！" << std::endl;
+                    }
+                    // Ctrl+L 加载
+                    if (key->code == sf::Keyboard::Key::L && sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl)) {
+                        if (ClothState::load(particles, constraints, "cloth_save.txt"))
+                            std::cout << "布料已从 cloth_save.txt 加载" << std::endl;
+                        else
+                            std::cout << "加载失败！" << std::endl;
+                    }
                 }
             }
             // 鼠标滚轮控制相机前后移动
@@ -460,7 +475,9 @@ int main()
                                    "Space: Toggle wind\n"
                                    "T: Triangle grid\n"
                                    "H: Hex grid\n"
-                                   "Q: Square grid";
+                                   "Q: Square grid\n"
+                                   "Ctrl+S: Save cloth\n"
+                                   "Ctrl+L: Load cloth";
             sf::Text help(font, help_str);
             help.setFillColor(sf::Color(200, 200, 200));
             help.setCharacterSize(22);
