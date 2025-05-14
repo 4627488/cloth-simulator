@@ -1,0 +1,5 @@
+BasedOnStyle: LLVM
+ColumnLimit: 90 # 文档中的代码行宽度限制为 90
+IndentWidth: 4
+AllowShortIfStatementsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
