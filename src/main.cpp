@@ -67,7 +67,7 @@ Vector3f world_to_camera(const Vector3f& p)
 }
 
 // 投影：相机坐标 -> 二维屏幕坐标 (简单透视)
-sf::Vector2f project(const Vector3f& world_pos)
+sf::Vector2f project(const Vector3f& world_pos, float current_width, float current_height)
 {
     Vector3f cam_coords = world_to_camera(world_pos);
 
@@ -82,8 +82,8 @@ sf::Vector2f project(const Vector3f& world_pos)
     }
 
     // 透视除法，并将原点移到屏幕中心
-    float screen_x = (cam_coords.x * fov_factor / perspective_z) + WIDTH / 2.f;
-    float screen_y = (-cam_coords.y * fov_factor / perspective_z) + HEIGHT / 2.f; // Y 轴翻转以匹配屏幕坐标
+    float screen_x = (cam_coords.x * fov_factor / perspective_z) + current_width / 2.f;
+    float screen_y = (-cam_coords.y * fov_factor / perspective_z) + current_height / 2.f; // Y 轴翻转以匹配屏幕坐标
 
     return sf::Vector2f(screen_x, screen_y);
 }
@@ -222,6 +222,10 @@ int main()
     float fps = 0.0f;
 
     while (window.isOpen()) {
+        sf::Vector2u window_size = window.getSize(); // Get current window size
+        const float current_win_width = static_cast<float>(window_size.x);
+        const float current_win_height = static_cast<float>(window_size.y);
+
         while (auto event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
@@ -248,7 +252,7 @@ int main()
                     const float thresholdSq = 30.0f * 30.0f; // Squared threshold (30 pixels)
                     Particle* nearest = nullptr;
                     for (auto& particle : particles) {
-                        sf::Vector2f projectedPos = project(particle.position);
+                        sf::Vector2f projectedPos = project(particle.position, current_win_width, current_win_height);
                         // Skip particles projected way off-screen (e.g., behind camera)
                         if (projectedPos.x < -1000 || projectedPos.y < -1000)
                             continue;
@@ -298,7 +302,7 @@ int main()
                     const float thresholdSq = 30.0f * 30.0f; // Squared threshold (30 pixels)
                     Particle* nearest = nullptr;
                     for (auto& particle : particles) {
-                        sf::Vector2f projectedPos = project(particle.position);
+                        sf::Vector2f projectedPos = project(particle.position, current_win_width, current_win_height);
                         // Skip particles projected way off-screen (e.g., behind camera)
                         if (projectedPos.x < -1000 || projectedPos.y < -1000)
                             continue;
@@ -463,8 +467,8 @@ int main()
             if (initial_cam_z <= 0.1f)
                 initial_cam_z = 0.1f;
 
-            float cam_x = (screen_x - WIDTH / 2.f) * initial_cam_z / fov_factor;
-            float cam_y = -(screen_y - HEIGHT / 2.f) * initial_cam_z / fov_factor; // Y needs to be flipped back
+            float cam_x = (screen_x - current_win_width / 2.f) * initial_cam_z / fov_factor;
+            float cam_y = -(screen_y - current_win_height / 2.f) * initial_cam_z / fov_factor; // Y needs to be flipped back
             Vector3f P_cam(cam_x, cam_y, initial_cam_z); // Point in Camera Space
 
             // 2. Camera Space to World Space (reverse LookAt)
@@ -512,8 +516,8 @@ int main()
             Vector3f start(x, 0, -grid_size / 2.0f);
             Vector3f end(x, 0, grid_size / 2.0f);
             sf::Vertex line[] = {
-                { project(start), grid_color },
-                { project(end), grid_color },
+                { project(start, current_win_width, current_win_height), grid_color },
+                { project(end, current_win_width, current_win_height), grid_color },
             };
             window.draw(line, 2, sf::PrimitiveType::Lines);
         }
@@ -522,8 +526,8 @@ int main()
             Vector3f start(-grid_size / 2.0f, 0, z);
             Vector3f end(grid_size / 2.0f, 0, z);
             sf::Vertex line[] = {
-                { project(start), grid_color },
-                { project(end), grid_color },
+                { project(start, current_win_width, current_win_height), grid_color },
+                { project(end, current_win_width, current_win_height), grid_color },
             };
             window.draw(line, 2, sf::PrimitiveType::Lines);
         }
@@ -535,8 +539,8 @@ int main()
             Vector3f start(0, -grid_size / 2.0f, z);
             Vector3f end(0, grid_size / 2.0f, z);
             sf::Vertex line[] = {
-                { project(start), grid_color },
-                { project(end), grid_color },
+                { project(start, current_win_width, current_win_height), grid_color },
+                { project(end, current_win_width, current_win_height), grid_color },
             };
             window.draw(line, 2, sf::PrimitiveType::Lines);
         }
@@ -545,8 +549,8 @@ int main()
             Vector3f start(0, y, -grid_size / 2.0f);
             Vector3f end(0, y, grid_size / 2.0f);
             sf::Vertex line[] = {
-                { project(start), grid_color },
-                { project(end), grid_color },
+                { project(start, current_win_width, current_win_height), grid_color },
+                { project(end, current_win_width, current_win_height), grid_color },
             };
             window.draw(line, 2, sf::PrimitiveType::Lines);
         }
@@ -558,8 +562,8 @@ int main()
             Vector3f start(-grid_size / 2.0f, y, 0);
             Vector3f end(grid_size / 2.0f, y, 0);
             sf::Vertex line[] = {
-                { project(start), grid_color },
-                { project(end), grid_color },
+                { project(start, current_win_width, current_win_height), grid_color },
+                { project(end, current_win_width, current_win_height), grid_color },
             };
             window.draw(line, 2, sf::PrimitiveType::Lines);
         }
@@ -568,8 +572,8 @@ int main()
             Vector3f start(x, -grid_size / 2.0f, 0);
             Vector3f end(x, grid_size / 2.0f, 0);
             sf::Vertex line[] = {
-                { project(start), grid_color },
-                { project(end), grid_color },
+                { project(start, current_win_width, current_win_height), grid_color },
+                { project(end, current_win_width, current_win_height), grid_color },
             };
             window.draw(line, 2, sf::PrimitiveType::Lines);
         }
@@ -587,7 +591,7 @@ int main()
         // Draw particles as points
         for (const auto& particle : particles) {
             sf::Color color = particle.is_pinned ? sf::Color::Red : sf::Color(255, 255 - (int)(particle.position.y / HEIGHT * 255), 255 - (int)(particle.position.z / 1000.0f * 255));
-            sf::Vertex point { project(particle.position), color };
+            sf::Vertex point { project(particle.position, current_win_width, current_win_height), color };
             window.draw(&point, 1, sf::PrimitiveType::Points);
         }
 
@@ -600,8 +604,8 @@ int main()
             float t = std::min(std::abs(len - constraint.initial_length) / (constraint.initial_length * 0.5f), 1.0f);
             sf::Color lineColor = sf::Color(255, (uint8_t)(255 * (1 - t)), (uint8_t)(255 * (1 - t)));
             sf::Vertex line[] = {
-                { project(constraint.p1->position), lineColor },
-                { project(constraint.p2->position), lineColor },
+                { project(constraint.p1->position, current_win_width, current_win_height), lineColor },
+                { project(constraint.p2->position, current_win_width, current_win_height), lineColor },
             };
             window.draw(line, 2, sf::PrimitiveType::Lines);
         }
@@ -647,7 +651,7 @@ int main()
                 ss << "Hexagon";
             sf::Text info(font, ss.str());
             info.setFillColor(sf::Color::White);
-            info.setPosition(sf::Vector2f(static_cast<float>(WIDTH - 350), 20.f)); // 右上角
+            info.setPosition(sf::Vector2f(static_cast<float>(current_win_width - 350), 20.f)); // 右上角
             window.draw(info);
             // 绘制操作说明（右下角，英文）
             std::string help_str = "Left click: Drag particle\n"
@@ -670,7 +674,7 @@ int main()
             auto helpBounds = help.getLocalBounds();
             float helpWidth = helpBounds.size.x;
             float helpHeight = helpBounds.size.y;
-            help.setPosition(sf::Vector2f(WIDTH - helpWidth - 40.f, HEIGHT - helpHeight - 80.f));
+            help.setPosition(sf::Vector2f(current_win_width - helpWidth - 40.f, current_win_height - helpHeight - 80.f));
             window.draw(help);
             // 绘制坐标轴（加粗版 - Fixed)
             sf::Vector2f origin_2d(80, 120); // Top-left corner screen position
@@ -683,10 +687,10 @@ int main()
             Vector3f world_y_end(0, axis_len, 0);
             Vector3f world_z_end(0, 0, axis_len);
 
-            sf::Vector2f projected_origin = project(world_origin_pos);
-            sf::Vector2f projected_x_end = project(world_x_end);
-            sf::Vector2f projected_y_end = project(world_y_end);
-            sf::Vector2f projected_z_end = project(world_z_end);
+            sf::Vector2f projected_origin = project(world_origin_pos, current_win_width, current_win_height);
+            sf::Vector2f projected_x_end = project(world_x_end, current_win_width, current_win_height);
+            sf::Vector2f projected_y_end = project(world_y_end, current_win_width, current_win_height);
+            sf::Vector2f projected_z_end = project(world_z_end, current_win_width, current_win_height);
 
             // Calculate normalized 2D direction vectors on screen
             sf::Vector2f dir_x = projected_x_end - projected_origin;
@@ -759,7 +763,7 @@ int main()
 
                 float text_height = line_count * bottomLeftInfo.getCharacterSize() * 1.15f; // Approximate height with line spacing
 
-                bottomLeftInfo.setPosition(sf::Vector2f(20.f, HEIGHT - text_height - 20.f));
+                bottomLeftInfo.setPosition(sf::Vector2f(20.f, current_win_height - text_height - 20.f));
                 window.draw(bottomLeftInfo);
             }
         }
